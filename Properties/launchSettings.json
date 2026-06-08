@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IoTGenerator": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
