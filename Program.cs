@@ -37,7 +37,8 @@ while (!cts.Token.IsCancellationRequested)
         var response = await client.PostAsync($"{gatewayUrl}/api/telemetry", content, cts.Token);
         if (response.IsSuccessStatusCode)
         {
-            logger.LogInformation("Sent: device={DeviceId}, value={Value}", telemetry.deviceId, telemetry.value);
+            logger.LogInformation("Sent: device={DeviceId}, ts={Timestamp}, value={Value}", telemetry.deviceId,
+                 telemetry.timestamp, telemetry.value);
         }
         else
         {
