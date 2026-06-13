@@ -16,7 +16,7 @@ Console.CancelKeyPress += (_, _) => cts.Cancel();
 var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
-using var client = new HttpClient();  // ЭТО БЫЛО ПРОПУЩЕНО
+using var client = new HttpClient();
 
 logger.LogInformation("Generator started. Gateway: {GatewayUrl}", gatewayUrl);
 
