@@ -33,6 +33,12 @@ else if (mode == "step")
 {
     await RunStepMode(client, gatewayUrl, logger, cts.Token);
 }
+else if (mode == "warmup")
+{
+    var durationSec = int.Parse(Environment.GetEnvironmentVariable("WARMUP_DURATION_SEC") ?? "120");
+    var targetRps = int.Parse(Environment.GetEnvironmentVariable("WARMUP_TARGET_RPS") ?? "10000");
+    await RunWarmupMode(client, gatewayUrl, targetRps, durationSec, logger, cts.Token);
+}
 else
 {
     logger.LogError("Unknown mode: {Mode}", mode);
@@ -128,6 +134,44 @@ async Task RunStepMode(HttpClient client, string url, ILogger logger, Cancellati
         await Task.Delay(5000, token);
     }
 }
+async Task RunWarmupMode(HttpClient client, string url, int targetRps, int durationSec, ILogger logger, CancellationToken token)
+{
+    var intervalMs = 1000.0 / targetRps;
+    var random = new Random();
+    var startTime = DateTime.UtcNow;
+    var requestCount = 0;
+
+    logger.LogInformation("Warmup mode started: target {TargetRps} RPS for {Duration} seconds", targetRps, durationSec);
+
+    while ((DateTime.UtcNow - startTime).TotalSeconds < durationSec && !token.IsCancellationRequested)
+    {
+        var deviceId = random.Next(1, 11);
+        var telemetry = GenerateTelemetry(deviceId, random);
+        await SendTelemetry(client, url, telemetry, logger);
+        requestCount++;
+
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        var expectedRequests = targetRps * elapsed / 1000.0;
+        if (expectedRequests > requestCount)
+        {
+            var delay = (expectedRequests - requestCount) * intervalMs;
+            if (delay > 0 && delay < 1000)
+            {
+                await Task.Delay((int)delay, token);
+            }
+        }
+
+        if (requestCount % 1000 == 0)
+        {
+            logger.LogInformation("Warmup: {RequestCount} requests sent, current RPS: {CurrentRps:F0}",
+                requestCount, requestCount / ((DateTime.UtcNow - startTime).TotalSeconds));
+        }
+    }
+
+    logger.LogInformation("Warmup mode completed: {RequestCount} total requests in {Duration:F0} seconds",
+        requestCount, (DateTime.UtcNow - startTime).TotalSeconds);
+}
+
 
 TelemetryData GenerateTelemetry(int deviceId, Random rnd)
 {
